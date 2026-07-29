@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}今日の心 | {{ app_name }}{% endblock %}
+{% block page_name %}heart{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <p class="page-heading__eyebrow">
+        TODAY'S HEART
+    </p>
+
+    <h1 class="page-heading__title">
+        今日の心
+    </h1>
+
+    <p class="page-heading__description">
+        今の状態を、答えられる範囲で残してください。
+    </p>
+</section>
+
+<form
+    class="record-form"
+    method="post"
+    action="{{ url_for('heart') }}"
+    data-heart-form
+>
+    <section class="form-card">
+        <div class="form-card__heading">
+            <div>
+                <p class="form-card__label">
+                    心の状態
+                </p>
+
+                <h2 class="form-card__title">
+                    今日はどんな気分でしたか？
+                </h2>
+            </div>
+
+            <output
+                class="heart-score"
+                for="heart_level"
+                data-score-output="heart_level"
+                aria-live="polite"
+            >
+                未選択
+            </output>
+        </div>
+
+        <fieldset class="heart-rating">
+            <legend class="visually-hidden">
+                心の状態を1から5で選択
+            </legend>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="heart_level"
+                id="heart_level_1"
+                value="1"
+                required
+            >
+            <label
+                class="heart-rating__heart"
+                for="heart_level_1"
+                aria-label="心の状態 1"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="heart_level"
+                id="heart_level_2"
+                value="2"
+            >
+            <label
+                class="heart-rating__heart"
+                for="heart_level_2"
+                aria-label="心の状態 2"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="heart_level"
+                id="heart_level_3"
+                value="3"
+            >
+            <label
+                class="heart-rating__heart"
+                for="heart_level_3"
+                aria-label="心の状態 3"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="heart_level"
+                id="heart_level_4"
+                value="4"
+            >
+            <label
+                class="heart-rating__heart"
+                for="heart_level_4"
+                aria-label="心の状態 4"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="heart_level"
+                id="heart_level_5"
+                value="5"
+            >
+            <label
+                class="heart-rating__heart"
+                for="heart_level_5"
+                aria-label="心の状態 5"
+            >
+                ♡
+            </label>
+        </fieldset>
+
+        <div class="rating-scale" aria-hidden="true">
+            <span>つらい</span>
+            <span>穏やか</span>
+        </div>
+    </section>
+
+    <section class="form-card">
+        <div class="form-card__heading">
+            <div>
+                <p class="form-card__label">
+                    不安の強さ
+                </p>
+
+                <h2 class="form-card__title">
+                    今日はどのくらい不安でしたか？
+                </h2>
+            </div>
+
+            <output
+                class="heart-score"
+                for="anxiety_level"
+                data-score-output="anxiety_level"
+                aria-live="polite"
+            >
+                未選択
+            </output>
+        </div>
+
+        <fieldset class="heart-rating">
+            <legend class="visually-hidden">
+                不安の強さを1から5で選択
+            </legend>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="anxiety_level"
+                id="anxiety_level_1"
+                value="1"
+                required
+            >
+            <label
+                class="heart-rating__heart"
+                for="anxiety_level_1"
+                aria-label="不安の強さ 1"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="anxiety_level"
+                id="anxiety_level_2"
+                value="2"
+            >
+            <label
+                class="heart-rating__heart"
+                for="anxiety_level_2"
+                aria-label="不安の強さ 2"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="anxiety_level"
+                id="anxiety_level_3"
+                value="3"
+            >
+            <label
+                class="heart-rating__heart"
+                for="anxiety_level_3"
+                aria-label="不安の強さ 3"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="anxiety_level"
+                id="anxiety_level_4"
+                value="4"
+            >
+            <label
+                class="heart-rating__heart"
+                for="anxiety_level_4"
+                aria-label="不安の強さ 4"
+            >
+                ♡
+            </label>
+
+            <input
+                class="heart-rating__input"
+                type="radio"
+                name="anxiety_level"
+                id="anxiety_level_5"
+                value="5"
+            >
+            <label
+                class="heart-rating__heart"
+                for="anxiety_level_5"
+                aria-label="不安の強さ 5"
+            >
+                ♡
+            </label>
+        </fieldset>
+
+        <div class="rating-scale" aria-hidden="true">
+            <span>少ない</span>
+            <span>強い</span>
+        </div>
+    </section>
+
+    <section class="form-card">
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="good_things"
+            >
+                今日うまくいったこと
+            </label>
+
+            <p class="field-help">
+                小さなことでも大丈夫です。
+            </p>
+
+            <textarea
+                class="text-area"
+                name="good_things"
+                id="good_things"
+                rows="4"
+                maxlength="1000"
+                placeholder="例：予定していた外出ができた"
+            ></textarea>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="difficulties"
+            >
+                難しかったこと
+            </label>
+
+            <p class="field-help">
+                できなかった理由を無理に整理しなくても大丈夫です。
+            </p>
+
+            <textarea
+                class="text-area"
+                name="difficulties"
+                id="difficulties"
+                rows="4"
+                maxlength="1000"
+                placeholder="例：人が多く、電車に乗る前から不安が強かった"
+            ></textarea>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="memo"
+            >
+                メモ
+            </label>
+
+            <p class="field-help">
+                診察で伝えたいことや、気になったことを自由に残せます。
+            </p>
+
+            <textarea
+                class="text-area"
+                name="memo"
+                id="memo"
+                rows="5"
+                maxlength="2000"
+                placeholder="自由に入力してください"
+            ></textarea>
+        </div>
+    </section>
+
+    {% if weather %}
+        <aside class="attached-weather">
+            <div>
+                <p class="attached-weather__label">
+                    保存時に記録される気圧
+                </p>
+
+                <p class="attached-weather__value">
+                    {% if weather.pressure is not none %}
+                        {{ "%.1f"|format(weather.pressure) }} hPa
+                    {% else %}
+                        気圧不明
+                    {% endif %}
+                </p>
+            </div>
+
+            <span
+                class="status-badge status-badge--{{ weather.pressure_status or 'unknown' }}"
+            >
+                {% if weather.pressure_status == "normal" %}
+                    通常
+                {% elif weather.pressure_status == "caution" %}
+                    注意
+                {% elif weather.pressure_status == "warning" %}
+                    警戒
+                {% else %}
+                    不明
+                {% endif %}
+            </span>
+        </aside>
+    {% endif %}
+
+    <div class="form-actions">
+        <button
+            class="button button--primary button--full"
+            type="submit"
+            data-submit-button
+        >
+            保存する
+        </button>
+    </div>
+</form>
+{% endblock %}

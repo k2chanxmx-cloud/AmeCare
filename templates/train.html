@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}電車ログ | {{ app_name }}{% endblock %}
+{% block page_name %}train{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <p class="page-heading__eyebrow">
+        TRAIN LOG
+    </p>
+
+    <h1 class="page-heading__title">
+        電車ログ
+    </h1>
+
+    <p class="page-heading__description">
+        今日の移動を、できる範囲で残してください。
+    </p>
+</section>
+
+<form
+    class="record-form"
+    method="post"
+    action="{{ url_for('train') }}"
+    data-train-form
+>
+    <section class="form-card">
+        <div class="form-card__heading">
+            <div>
+                <p class="form-card__label">
+                    今日の結果
+                </p>
+
+                <h2 class="form-card__title">
+                    電車には乗れましたか？
+                </h2>
+            </div>
+        </div>
+
+        <fieldset class="result-selector">
+            <legend class="visually-hidden">
+                電車に乗れたか選択
+            </legend>
+
+            <input
+                class="result-selector__input"
+                type="radio"
+                name="result"
+                id="result_success"
+                value="success"
+                required
+            >
+            <label
+                class="result-selector__option"
+                for="result_success"
+            >
+                <span class="result-selector__symbol">◎</span>
+                <span class="result-selector__text">
+                    <strong>乗れた</strong>
+                    <small>予定どおり乗車できた</small>
+                </span>
+            </label>
+
+            <input
+                class="result-selector__input"
+                type="radio"
+                name="result"
+                id="result_partial"
+                value="partial"
+            >
+            <label
+                class="result-selector__option"
+                for="result_partial"
+            >
+                <span class="result-selector__symbol">△</span>
+                <span class="result-selector__text">
+                    <strong>一部乗れた</strong>
+                    <small>途中まで、または一部だけ乗れた</small>
+                </span>
+            </label>
+
+            <input
+                class="result-selector__input"
+                type="radio"
+                name="result"
+                id="result_failed"
+                value="failed"
+            >
+            <label
+                class="result-selector__option"
+                for="result_failed"
+            >
+                <span class="result-selector__symbol">×</span>
+                <span class="result-selector__text">
+                    <strong>乗れなかった</strong>
+                    <small>乗車を見送った、または途中で断念した</small>
+                </span>
+            </label>
+
+            <input
+                class="result-selector__input"
+                type="radio"
+                name="result"
+                id="result_no_plan"
+                value="no_plan"
+            >
+            <label
+                class="result-selector__option"
+                for="result_no_plan"
+            >
+                <span class="result-selector__symbol">－</span>
+                <span class="result-selector__text">
+                    <strong>予定なし</strong>
+                    <small>今日は電車に乗る予定がなかった</small>
+                </span>
+            </label>
+        </fieldset>
+    </section>
+
+    <section class="form-card">
+        <div class="field-group">
+            <span class="field-label">
+                一人でしたか？
+            </span>
+
+            <div class="segmented-control">
+                <input
+                    class="segmented-control__input"
+                    type="radio"
+                    name="travel_support"
+                    id="travel_support_alone"
+                    value="alone"
+                >
+                <label
+                    class="segmented-control__label"
+                    for="travel_support_alone"
+                >
+                    一人
+                </label>
+
+                <input
+                    class="segmented-control__input"
+                    type="radio"
+                    name="travel_support"
+                    id="travel_support_accompanied"
+                    value="accompanied"
+                >
+                <label
+                    class="segmented-control__label"
+                    for="travel_support_accompanied"
+                >
+                    付き添いあり
+                </label>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="station_count"
+            >
+                何駅分乗れましたか？
+            </label>
+
+            <input
+                class="text-input"
+                type="number"
+                name="station_count"
+                id="station_count"
+                inputmode="numeric"
+                min="0"
+                max="99"
+                placeholder="例：3"
+            >
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="crowd_level"
+            >
+                混雑状況
+            </label>
+
+            <select
+                class="select-input"
+                name="crowd_level"
+                id="crowd_level"
+            >
+                <option value="">
+                    選択しない
+                </option>
+                <option value="empty">
+                    空いていた
+                </option>
+                <option value="normal">
+                    普通
+                </option>
+                <option value="crowded">
+                    混んでいた
+                </option>
+                <option value="very_crowded">
+                    とても混んでいた
+                </option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label class="switch-row" for="panic_flag">
+                <span>
+                    <strong class="field-label">
+                        パニックや強い不安があった
+                    </strong>
+
+                    <small class="field-help">
+                        該当する場合だけオンにしてください。
+                    </small>
+                </span>
+
+                <span class="switch">
+                    <input
+                        class="switch__input"
+                        type="checkbox"
+                        name="panic_flag"
+                        id="panic_flag"
+                    >
+                    <span class="switch__track">
+                        <span class="switch__thumb"></span>
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="failed_stage"
+            >
+                難しかった場面
+            </label>
+
+            <select
+                class="select-input"
+                name="failed_stage"
+                id="failed_stage"
+            >
+                <option value="">
+                    選択しない
+                </option>
+                <option value="before_station">
+                    駅へ向かう前
+                </option>
+                <option value="at_station">
+                    駅に着いてから
+                </option>
+                <option value="before_boarding">
+                    乗車直前
+                </option>
+                <option value="during_ride">
+                    乗車中
+                </option>
+                <option value="transfer">
+                    乗り換え
+                </option>
+                <option value="after_ride">
+                    降車後
+                </option>
+            </select>
+        </div>
+    </section>
+
+    <section class="form-card">
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="before_state"
+            >
+                乗る前
+            </label>
+
+            <textarea
+                class="text-area"
+                name="before_state"
+                id="before_state"
+                rows="3"
+                maxlength="800"
+                placeholder="例：駅に着く前から不安があった"
+            ></textarea>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="during_state"
+            >
+                乗っている間
+            </label>
+
+            <textarea
+                class="text-area"
+                name="during_state"
+                id="during_state"
+                rows="3"
+                maxlength="800"
+                placeholder="例：ドア付近なら少し落ち着けた"
+            ></textarea>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="after_state"
+            >
+                降りたあと
+            </label>
+
+            <textarea
+                class="text-area"
+                name="after_state"
+                id="after_state"
+                rows="3"
+                maxlength="800"
+                placeholder="例：降りてから10分ほど休んだ"
+            ></textarea>
+        </div>
+
+        <div class="field-group">
+            <label
+                class="field-label"
+                for="memo"
+            >
+                メモ
+            </label>
+
+            <textarea
+                class="text-area"
+                name="memo"
+                id="memo"
+                rows="4"
+                maxlength="1500"
+                placeholder="自由に入力してください"
+            ></textarea>
+        </div>
+    </section>
+
+    {% if weather %}
+        <aside class="attached-weather">
+            <div>
+                <p class="attached-weather__label">
+                    保存時に記録される気圧
+                </p>
+
+                <p class="attached-weather__value">
+                    {% if weather.pressure is not none %}
+                        {{ "%.1f"|format(weather.pressure) }} hPa
+                    {% else %}
+                        気圧不明
+                    {% endif %}
+                </p>
+            </div>
+
+            <span
+                class="status-badge status-badge--{{ weather.pressure_status or 'unknown' }}"
+            >
+                {% if weather.pressure_status == "normal" %}
+                    通常
+                {% elif weather.pressure_status == "caution" %}
+                    注意
+                {% elif weather.pressure_status == "warning" %}
+                    警戒
+                {% else %}
+                    不明
+                {% endif %}
+            </span>
+        </aside>
+    {% endif %}
+
+    <div class="form-actions">
+        <button
+            class="button button--primary button--full"
+            type="submit"
+            data-submit-button
+        >
+            保存する
+        </button>
+    </div>
+</form>
+
+{% if logs %}
+    <section class="history-section">
+        <div class="section-heading">
+            <div>
+                <p class="section-heading__eyebrow">
+                    TODAY
+                </p>
+
+                <h2 class="section-heading__title">
+                    今日の記録
+                </h2>
+            </div>
+
+            <span class="section-heading__count">
+                {{ logs|length }}件
+            </span>
+        </div>
+
+        <div class="history-list">
+            {% for log in logs %}
+                <article class="history-card">
+                    <div class="history-card__header">
+                        <div class="history-card__result">
+                            <span class="history-card__symbol">
+                                {% if log.result == "success" %}
+                                    ◎
+                                {% elif log.result == "partial" %}
+                                    △
+                                {% elif log.result == "failed" %}
+                                    ×
+                                {% else %}
+                                    －
+                                {% endif %}
+                            </span>
+
+                            <div>
+                                <h3 class="history-card__title">
+                                    {% if log.result == "success" %}
+                                        乗れた
+                                    {% elif log.result == "partial" %}
+                                        一部乗れた
+                                    {% elif log.result == "failed" %}
+                                        乗れなかった
+                                    {% else %}
+                                        予定なし
+                                    {% endif %}
+                                </h3>
+
+                                <p class="history-card__time">
+                                    {{ log.logged_at.strftime("%H:%M") if log.logged_at else "" }}
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if log.panic_flag %}
+                            <span class="status-badge status-badge--warning">
+                                強い不安あり
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="history-card__details">
+                        {% if log.travel_support %}
+                            <span>
+                                {% if log.travel_support == "alone" %}
+                                    一人
+                                {% else %}
+                                    付き添いあり
+                                {% endif %}
+                            </span>
+                        {% endif %}
+
+                        {% if log.station_count is not none %}
+                            <span>
+                                {{ log.station_count }}駅
+                            </span>
+                        {% endif %}
+
+                        {% if log.crowd_level %}
+                            <span>
+                                {% if log.crowd_level == "empty" %}
+                                    空いていた
+                                {% elif log.crowd_level == "normal" %}
+                                    普通
+                                {% elif log.crowd_level == "crowded" %}
+                                    混んでいた
+                                {% elif log.crowd_level == "very_crowded" %}
+                                    とても混んでいた
+                                {% else %}
+                                    {{ log.crowd_level }}
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if log.memo %}
+                        <p class="history-card__memo">
+                            {{ log.memo }}
+                        </p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

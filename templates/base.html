@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta name="theme-color" content="#111111">
+    <meta name="color-scheme" content="dark">
+
+    <title>
+        {% block title %}{{ app_name }}{% endblock %}
+    </title>
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}"
+    >
+
+    <link
+        rel="icon"
+        href="{{ url_for('static', filename='icon.png') }}"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="{{ url_for('static', filename='icon.png') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    {% block head %}{% endblock %}
+</head>
+
+<body
+    class="{% block body_class %}{% endblock %}"
+    data-page="{% block page_name %}{% endblock %}"
+>
+    <div class="app-shell">
+
+        <header class="top-header">
+            <div class="top-header__inner">
+                <a
+                    class="brand"
+                    href="{{ url_for('index') }}"
+                    aria-label="{{ app_name }} ホーム"
+                >
+                    <span class="brand__name">{{ app_name }}</span>
+                </a>
+
+                {% block header_action %}{% endblock %}
+            </div>
+        </header>
+
+        <main class="main-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section
+                        class="flash-list"
+                        aria-live="polite"
+                        aria-atomic="true"
+                    >
+                        {% for category, message in messages %}
+                            <div
+                                class="flash-message flash-message--{{ category }}"
+                                role="status"
+                            >
+                                <span class="flash-message__text">
+                                    {{ message }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="flash-message__close"
+                                    aria-label="通知を閉じる"
+                                    data-flash-close
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <nav
+            class="bottom-nav"
+            aria-label="メインメニュー"
+        >
+            <a
+                class="bottom-nav__item {% if request.endpoint == 'index' %}is-active{% endif %}"
+                href="{{ url_for('index') }}"
+                aria-label="ホーム"
+                {% if request.endpoint == 'index' %}aria-current="page"{% endif %}
+            >
+                <span
+                    class="bottom-nav__icon"
+                    aria-hidden="true"
+                >
+                    ⌂
+                </span>
+
+                <span class="bottom-nav__label">
+                    ホーム
+                </span>
+            </a>
+
+            <a
+                class="bottom-nav__item {% if request.endpoint == 'heart' %}is-active{% endif %}"
+                href="{{ url_for('heart') }}"
+                aria-label="今日の心"
+                {% if request.endpoint == 'heart' %}aria-current="page"{% endif %}
+            >
+                <span
+                    class="bottom-nav__icon"
+                    aria-hidden="true"
+                >
+                    ♡
+                </span>
+
+                <span class="bottom-nav__label">
+                    心
+                </span>
+            </a>
+
+            <a
+                class="bottom-nav__item {% if request.endpoint == 'train' %}is-active{% endif %}"
+                href="{{ url_for('train') }}"
+                aria-label="電車ログ"
+                {% if request.endpoint == 'train' %}aria-current="page"{% endif %}
+            >
+                <span
+                    class="bottom-nav__icon"
+                    aria-hidden="true"
+                >
+                    🚃
+                </span>
+
+                <span class="bottom-nav__label">
+                    電車
+                </span>
+            </a>
+
+            <a
+                class="bottom-nav__item {% if request.endpoint in ['reports', 'generate'] %}is-active{% endif %}"
+                href="{{ url_for('reports') }}"
+                aria-label="AIレポート"
+                {% if request.endpoint in ['reports', 'generate'] %}aria-current="page"{% endif %}
+            >
+                <span
+                    class="bottom-nav__icon"
+                    aria-hidden="true"
+                >
+                    ▤
+                </span>
+
+                <span class="bottom-nav__label">
+                    レポート
+                </span>
+            </a>
+        </nav>
+    </div>
+
+    <script
+        src="{{ url_for('static', filename='app.js') }}"
+        defer
+    ></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}ホーム | {{ app_name }}{% endblock %}
+{% block page_name %}home{% endblock %}
+
+{% block content %}
+<section class="page-heading page-heading--home">
+    <p class="page-heading__eyebrow">
+        {{ today.strftime("%Y.%m.%d") }}
+    </p>
+
+    <h1 class="page-heading__title">
+        今日を、静かに記録する。
+    </h1>
+
+    <p class="page-heading__description">
+        心の状態と電車の記録を、無理のない範囲で残せます。
+    </p>
+</section>
+
+<section class="dashboard-grid">
+
+    <article class="dashboard-card dashboard-card--weather">
+        <div class="dashboard-card__header">
+            <div>
+                <p class="dashboard-card__label">
+                    今日の気圧
+                </p>
+
+                <h2 class="dashboard-card__title">
+                    {% if weather %}
+                        {{ weather.area_name or "現在地" }}
+                    {% else %}
+                        取得できませんでした
+                    {% endif %}
+                </h2>
+            </div>
+
+            {% if weather %}
+                <span
+                    class="status-badge status-badge--{{ weather.pressure_status or 'unknown' }}"
+                >
+                    {% if weather.pressure_status == "normal" %}
+                        通常
+                    {% elif weather.pressure_status == "caution" %}
+                        注意
+                    {% elif weather.pressure_status == "warning" %}
+                        警戒
+                    {% else %}
+                        不明
+                    {% endif %}
+                </span>
+            {% endif %}
+        </div>
+
+        {% if weather %}
+            <div class="weather-main">
+                <div class="weather-main__pressure">
+                    <span class="weather-main__number">
+                        {% if weather.pressure is not none %}
+                            {{ "%.1f"|format(weather.pressure) }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </span>
+
+                    <span class="weather-main__unit">
+                        hPa
+                    </span>
+                </div>
+
+                <div class="weather-main__meta">
+                    <span>
+                        {{ weather.weather or "天気不明" }}
+                    </span>
+
+                    <span>
+                        {% if weather.pressure_trend == "rising" %}
+                            上昇中
+                        {% elif weather.pressure_trend == "falling" %}
+                            下降中
+                        {% elif weather.pressure_trend == "stable" %}
+                            安定
+                        {% else %}
+                            変化不明
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if weather.is_stale %}
+                <p class="dashboard-card__note">
+                    最新情報を取得できなかったため、保存済みデータを表示しています。
+                </p>
+            {% endif %}
+        {% else %}
+            <p class="dashboard-card__empty">
+                気圧情報を取得できませんでした。
+            </p>
+        {% endif %}
+    </article>
+
+    <a
+        class="dashboard-card dashboard-card--link"
+        href="{{ url_for('heart') }}"
+    >
+        <div class="dashboard-card__header">
+            <div>
+                <p class="dashboard-card__label">
+                    今日の心
+                </p>
+
+                <h2 class="dashboard-card__title">
+                    今の気持ちを残す
+                </h2>
+            </div>
+
+            <span class="dashboard-card__arrow" aria-hidden="true">
+                →
+            </span>
+        </div>
+
+        <div class="heart-preview" aria-hidden="true">
+            <span>♡</span>
+            <span>♡</span>
+            <span>♡</span>
+            <span>♡</span>
+            <span>♡</span>
+        </div>
+
+        <p class="dashboard-card__description">
+            心の状態、不安、できたことや難しかったことを記録します。
+        </p>
+    </a>
+
+    <a
+        class="dashboard-card dashboard-card--link"
+        href="{{ url_for('train') }}"
+    >
+        <div class="dashboard-card__header">
+            <div>
+                <p class="dashboard-card__label">
+                    電車ログ
+                </p>
+
+                <h2 class="dashboard-card__title">
+                    今日の移動を記録
+                </h2>
+            </div>
+
+            <span class="dashboard-card__arrow" aria-hidden="true">
+                →
+            </span>
+        </div>
+
+        <div class="train-preview" aria-hidden="true">
+            <span>◎</span>
+            <span>△</span>
+            <span>×</span>
+            <span>－</span>
+        </div>
+
+        <p class="dashboard-card__description">
+            乗れた、途中まで、乗れなかった、予定なしを簡単に残せます。
+        </p>
+    </a>
+
+    <article class="dashboard-card dashboard-card--report">
+        <div class="dashboard-card__header">
+            <div>
+                <p class="dashboard-card__label">
+                    AI診察レポート
+                </p>
+
+                <h2 class="dashboard-card__title">
+                    {{ period_start.strftime("%-m/%-d") }}
+                    〜
+                    {{ period_end.strftime("%-m/%-d") }}
+                </h2>
+            </div>
+
+            {% if preview.existing_report %}
+                <span class="status-badge status-badge--complete">
+                    作成済み
+                </span>
+            {% elif preview.period_complete %}
+                <span class="status-badge status-badge--ready">
+                    作成可能
+                </span>
+            {% else %}
+                <span class="status-badge status-badge--recording">
+                    記録中
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="report-progress">
+            <div class="report-progress__item">
+                <span class="report-progress__number">
+                    {{ preview.heart_log_count }}
+                </span>
+
+                <span class="report-progress__label">
+                    心ログ
+                </span>
+            </div>
+
+            <div class="report-progress__divider"></div>
+
+            <div class="report-progress__item">
+                <span class="report-progress__number">
+                    {{ preview.train_log_count }}
+                </span>
+
+                <span class="report-progress__label">
+                    電車ログ
+                </span>
+            </div>
+        </div>
+
+        {% if preview.existing_report %}
+            <a
+                class="button button--primary button--full"
+                href="{{ url_for('reports') }}"
+            >
+                レポートを見る
+            </a>
+        {% elif preview.can_generate %}
+            <form
+                action="{{ url_for(
+                    'generate',
+                    period_start=period_start.isoformat(),
+                    period_end=period_end.isoformat()
+                ) }}"
+                method="post"
+            >
+                <button
+                    class="button button--primary button--full"
+                    type="submit"
+                >
+                    AIレポートを作成
+                </button>
+            </form>
+        {% elif preview.period_complete and not preview.has_records %}
+            <p class="dashboard-card__note">
+                この期間には記録がありません。
+            </p>
+
+            <a
+                class="button button--secondary button--full"
+                href="{{ url_for('reports') }}"
+            >
+                過去の期間を見る
+            </a>
+        {% else %}
+            <p class="dashboard-card__note">
+                7日間の記録が完了すると、AIレポートを作成できます。
+            </p>
+
+            <a
+                class="button button--secondary button--full"
+                href="{{ url_for('reports') }}"
+            >
+                レポート一覧を見る
+            </a>
+        {% endif %}
+    </article>
+
+</section>
+{% endblock %}
