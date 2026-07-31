@@ -354,4 +354,58 @@
         </button>
     </div>
 </form>
+
+{% if logs %}
+<section class="history-section">
+    <div class="section-heading">
+        <div>
+            <p class="section-heading__eyebrow">HISTORY</p>
+            <h2 class="section-heading__title">心の履歴</h2>
+        </div>
+        <span class="section-heading__count">{{ logs|length }}件</span>
+    </div>
+
+    <div class="history-list">
+        {% for log in logs %}
+        <article class="history-card">
+            <div class="history-card__header">
+                <div>
+                    <h3 class="history-card__title">
+                        {{ log.log_date.strftime("%Y/%m/%d") }}
+                    </h3>
+                    <p class="history-card__time">
+                        心：{{ "♥" * log.heart_level }}{{ "♡" * (5 - log.heart_level) }}
+                    </p>
+                </div>
+                <span class="status-badge status-badge--recording">
+                    不安 {{ log.anxiety_level }}/5
+                </span>
+            </div>
+
+            {% if log.good_things %}
+            <div class="field-group">
+                <p class="field-label">うまくいったこと</p>
+                <p class="history-card__memo">{{ log.good_things }}</p>
+            </div>
+            {% endif %}
+
+            {% if log.difficulties %}
+            <div class="field-group">
+                <p class="field-label">難しかったこと</p>
+                <p class="history-card__memo">{{ log.difficulties }}</p>
+            </div>
+            {% endif %}
+
+            {% if log.memo %}
+            <div class="field-group">
+                <p class="field-label">メモ</p>
+                <p class="history-card__memo">{{ log.memo }}</p>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 {% endblock %}

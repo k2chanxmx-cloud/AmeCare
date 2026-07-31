@@ -391,11 +391,11 @@
         <div class="section-heading">
             <div>
                 <p class="section-heading__eyebrow">
-                    TODAY
+                    HISTORY
                 </p>
 
                 <h2 class="section-heading__title">
-                    今日の記録
+                    電車の履歴
                 </h2>
             </div>
 
@@ -435,7 +435,8 @@
                                 </h3>
 
                                 <p class="history-card__time">
-                                    {{ log.logged_at.strftime("%H:%M") if log.logged_at else "" }}
+                                    {{ log.log_date.strftime("%Y/%m/%d") if log.log_date else "" }}
+                                    {% if log.logged_at %}{{ log.logged_at.strftime("%H:%M") }}{% endif %}
                                 </p>
                             </div>
                         </div>

@@ -310,6 +310,19 @@ def list_heart_logs(
     )
 
 
+def list_recent_heart_logs(limit: int = 30) -> list[dict[str, Any]]:
+    """心ログを新しい順で取得します。"""
+    return fetch_all(
+        """
+        SELECT *
+        FROM heart_logs
+        ORDER BY log_date DESC
+        LIMIT %s
+        """,
+        (limit,),
+    )
+
+
 # ============================================================
 # 電車ログ
 # ============================================================
@@ -420,6 +433,19 @@ def list_train_logs_for_date(log_date: date) -> list[dict[str, Any]]:
         ORDER BY logged_at DESC
         """,
         (log_date,),
+    )
+
+
+def list_recent_train_logs(limit: int = 30) -> list[dict[str, Any]]:
+    """電車ログを新しい順で取得します。"""
+    return fetch_all(
+        """
+        SELECT *
+        FROM train_logs
+        ORDER BY logged_at DESC
+        LIMIT %s
+        """,
+        (limit,),
     )
 
 

@@ -9,7 +9,8 @@ from database import (
     get_report_period,
     list_report_periods,
     save_heart_log,
-    list_train_logs_for_date,
+    list_recent_heart_logs,
+    list_recent_train_logs,
     save_train_log,
     test_database_connection,
 )
@@ -68,6 +69,7 @@ def heart():
 
     return render_template(
         "heart.html",
+        logs=list_recent_heart_logs(limit=30),
         weather=get_current_weather(),
     )
 
@@ -98,7 +100,7 @@ def train():
 
     return render_template(
         "train.html",
-        logs=list_train_logs_for_date(date.today()),
+        logs=list_recent_train_logs(limit=30),
         weather=get_current_weather(),
     )
 
