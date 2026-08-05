@@ -258,6 +258,40 @@
     }
 
     /**
+     * AI診察レポート全文をコピーします。
+     */
+    function initializeReportCopyButtons() {
+        document.querySelectorAll("[data-copy-report]").forEach((button) => {
+            button.addEventListener("click", async () => {
+                const card = button.closest(".report-card");
+                const report = card?.querySelector("[data-report-text]");
+                const text = report?.textContent?.trim();
+                if (!text) return;
+
+                const originalText = button.textContent.trim();
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (error) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    textArea.remove();
+                }
+
+                button.textContent = "コピーしました";
+                window.setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1800);
+            });
+        });
+    }
+
+    /**
      * Service Worker
      */
     function registerServiceWorker() {
@@ -293,6 +327,7 @@
         initializeSubmitButtons();
         initializeTrainForm();
         initializeAutoResize();
+        initializeReportCopyButtons();
         registerServiceWorker();
 
     }

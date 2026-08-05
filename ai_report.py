@@ -11,6 +11,7 @@ from config import config
 from database import (
     build_report_source,
     get_weekly_report,
+    list_report_periods,
     save_generated_report,
 )
 
@@ -44,8 +45,7 @@ SYSTEM_INSTRUCTIONS = """
 - 医師へそのまま見せられる自然な文章にする
 - 事実と推測を分ける
 - 記録が少ない項目は「記録が少なく判断できない」と明記する
-- 気圧との関係は「同じ時期に見られた」「関連はこの記録だけでは判断できない」
-  という慎重な表現にする
+- 気圧との関係は慎重な表現にする
 - 長すぎない文章にする
 - Markdownの見出しと箇条書きを使用する
 
@@ -62,56 +62,29 @@ SYSTEM_INSTRUCTIONS = """
 
 
 def _json_safe(value: Any) -> Any:
-    """
-    date、datetime、DecimalなどをJSONへ変換可能な値にします。
-    """
     if isinstance(value, datetime):
         return value.isoformat()
-
     if isinstance(value, date):
         return value.isoformat()
-
     if isinstance(value, Decimal):
         return float(value)
-
     if isinstance(value, dict):
-        return {
-            str(key): _json_safe(item)
-            for key, item in value.items()
-        }
-
+        return {str(key): _json_safe(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
-
     return value
 
 
-def _validate_period(
-    period_start: date,
-    period_end: date,
-) -> None:
-    """レポート期間が正確に7日間か確認します。"""
+def _validate_period(period_start: date, period_end: date) -> None:
     if period_end < period_start:
-        raise AIReportError(
-            "レポート終了日が開始日より前になっています。"
-        )
+        raise AIReportError("レポート終了日が開始日より前になっています。")
 
-    number_of_days = (period_end - period_start).days + 1
-
-    if number_of_days != 7:
-        raise AIReportError(
-            "AI診察レポートは7日間単位で作成してください。"
-        )
+    if (period_end - period_start).days + 1 != 7:
+        raise AIReportError("AI診察レポートは7日間単位で作成してください。")
 
 
 def _build_user_prompt(source: dict[str, Any]) -> str:
-    """記録データをAIへ渡すための依頼文を作ります。"""
-    safe_source = _json_safe(source)
-    source_json = json.dumps(
-        safe_source,
-        ensure_ascii=False,
-        indent=2,
-    )
+    source_json = json.dumps(_json_safe(source), ensure_ascii=False, indent=2)
 
     return f"""
 以下は、AmeCareに本人が入力した7日間の記録です。
@@ -121,30 +94,10 @@ def _build_user_prompt(source: dict[str, Any]) -> str:
 
 心の強さと不安の強さは、それぞれ1～5の本人評価です。
 電車結果は以下の意味です。
-
 - success: ◎ 乗れた
 - partial: △ 一部乗れた
 - failed: × 乗れなかった
 - no_plan: － 乗る予定なし
-
-移動方法は以下の意味です。
-
-- alone: 一人
-- accompanied: 付き添いあり
-
-気圧状態は以下の意味です。
-
-- normal: 通常
-- caution: 注意
-- warning: 警戒
-- unknown: 不明
-
-気圧変化は以下の意味です。
-
-- rising: 上昇中
-- falling: 下降中
-- stable: 安定
-- unknown: 不明
 
 【記録データ】
 {source_json}
@@ -152,32 +105,20 @@ def _build_user_prompt(source: dict[str, Any]) -> str:
 
 
 def _extract_output_text(response: Any) -> str:
-    """
-    Responses APIの応答から本文を取り出します。
-
-    SDKのoutput_textが利用できない場合にも対応します。
-    """
     output_text = getattr(response, "output_text", None)
-
     if isinstance(output_text, str) and output_text.strip():
         return output_text.strip()
 
     collected: list[str] = []
-
     for output_item in getattr(response, "output", []) or []:
         for content_item in getattr(output_item, "content", []) or []:
             text = getattr(content_item, "text", None)
-
             if isinstance(text, str) and text.strip():
                 collected.append(text.strip())
 
     result = "\n\n".join(collected).strip()
-
     if not result:
-        raise AIReportError(
-            "AIからレポート本文が返されませんでした。"
-        )
-
+        raise AIReportError("AIからレポート本文が返されませんでした。")
     return result
 
 
@@ -187,40 +128,25 @@ def generate_weekly_report(
     period_end: date,
     overwrite: bool = False,
 ) -> dict[str, Any]:
-    """
-    7日間の記録からAI診察レポートを作成してDBへ保存します。
-
-    overwrite=Falseで既存レポートがある場合は、
-    APIを再実行せず保存済みレポートを返します。
-    """
     _validate_period(period_start, period_end)
 
     existing = get_weekly_report(period_start, period_end)
-
     if existing and not overwrite:
         return existing
 
     if not config.OPENAI_API_KEY:
         raise AIReportError(
-            "OPENAI_API_KEYが設定されていません。"
-            "RenderのEnvironmentへ追加してください。"
+            "OPENAI_API_KEYが設定されていません。RenderのEnvironmentへ追加してください。"
         )
 
     source = build_report_source(period_start, period_end)
     safe_source = _json_safe(source)
-
-    heart_count = (
-        safe_source.get("summary", {}).get("heart_log_count", 0)
-    )
-    train_count = (
-        safe_source.get("summary", {}).get("train_log_count", 0)
-    )
+    summary = safe_source.get("summary", {})
+    heart_count = int(summary.get("heart_log_count") or 0)
+    train_count = int(summary.get("train_log_count") or 0)
 
     if heart_count == 0 and train_count == 0:
-        raise AIReportError(
-            "この7日間には心ログも電車ログもありません。"
-            "記録を入力してからレポートを作成してください。"
-        )
+        raise AIReportError("この7日間には心ログも電車ログもありません。")
 
     client = OpenAI(
         api_key=config.OPENAI_API_KEY,
@@ -236,8 +162,7 @@ def generate_weekly_report(
         )
     except Exception as exc:
         raise AIReportError(
-            "AI診察レポートの作成に失敗しました。"
-            "しばらく時間をおいて再度お試しください。"
+            "AI診察レポートの作成に失敗しました。次回アプリを開いたときに再試行します。"
         ) from exc
 
     generated_content = _extract_output_text(response)
@@ -251,26 +176,62 @@ def generate_weekly_report(
     )
 
 
-def create_report_preview(
-    *,
-    period_start: date,
-    period_end: date,
-) -> dict[str, Any]:
-    """
-    AIを呼び出さず、対象期間の記録件数と生成可否を確認します。
-    """
+def generate_missing_completed_reports() -> dict[str, Any]:
+    generated = 0
+    skipped = 0
+    errors: list[dict[str, str]] = []
+    today = date.today()
+
+    for period in reversed(list_report_periods()):
+        period_start = period["period_start"]
+        period_end = period["period_end"]
+
+        if today < period_end:
+            skipped += 1
+            continue
+
+        if get_weekly_report(period_start, period_end):
+            skipped += 1
+            continue
+
+        source = build_report_source(period_start, period_end)
+        summary = source.get("summary", {})
+
+        if (
+            int(summary.get("heart_log_count") or 0) == 0
+            and int(summary.get("train_log_count") or 0) == 0
+        ):
+            skipped += 1
+            continue
+
+        try:
+            generate_weekly_report(
+                period_start=period_start,
+                period_end=period_end,
+                overwrite=False,
+            )
+            generated += 1
+        except AIReportError as exc:
+            errors.append(
+                {
+                    "period_start": period_start.isoformat(),
+                    "period_end": period_end.isoformat(),
+                    "message": str(exc),
+                }
+            )
+
+    return {"generated": generated, "skipped": skipped, "errors": errors}
+
+
+def create_report_preview(*, period_start: date, period_end: date) -> dict[str, Any]:
     _validate_period(period_start, period_end)
 
-    source = _json_safe(
-        build_report_source(period_start, period_end)
-    )
+    source = _json_safe(build_report_source(period_start, period_end))
     summary = source.get("summary", {})
-
     heart_count = int(summary.get("heart_log_count") or 0)
     train_count = int(summary.get("train_log_count") or 0)
-
-    today = date.today()
-    period_complete = today > period_end
+    existing_report = get_weekly_report(period_start, period_end)
+    period_complete = date.today() >= period_end
 
     return {
         "period_start": period_start,
@@ -279,12 +240,6 @@ def create_report_preview(
         "train_log_count": train_count,
         "has_records": heart_count > 0 or train_count > 0,
         "period_complete": period_complete,
-        "can_generate": (
-            period_complete
-            and (heart_count > 0 or train_count > 0)
-        ),
-        "existing_report": get_weekly_report(
-            period_start,
-            period_end,
-        ),
+        "can_generate": period_complete and (heart_count > 0 or train_count > 0) and not existing_report,
+        "existing_report": existing_report,
     }

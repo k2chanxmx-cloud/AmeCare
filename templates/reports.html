@@ -8,16 +8,25 @@
     <p class="page-heading__eyebrow">AI REPORTS</p>
     <h1 class="page-heading__title">AI診察レポート</h1>
     <p class="page-heading__description">
-        7日ごとの記録を、診察で見せやすい文章にまとめます。
+        7日ごとの記録を、診察で見せやすい文章に自動でまとめます。
     </p>
 </section>
 
-<section class="report-list">
+{% if generation_started %}
+<aside class="attached-weather" style="margin-bottom:16px;">
+    <div>
+        <p class="attached-weather__label">自動確認中</p>
+        <p class="attached-weather__value">
+            未作成の期間がある場合は、バックグラウンドで作成します。
+        </p>
+    </div>
+</aside>
+{% endif %}
 
+<section class="report-list">
 {% if periods %}
     {% for period in periods %}
     <article class="report-card">
-
         <div class="report-card__header">
             <div>
                 <p class="report-card__label">
@@ -25,70 +34,66 @@
                     〜
                     {{ period.period_end.strftime("%Y/%m/%d") }}
                 </p>
-
-                <h2 class="report-card__title">
-                    7日間レポート
-                </h2>
+                <h2 class="report-card__title">7日間レポート</h2>
             </div>
 
-            {% if period.is_current %}
-                <span class="status-badge status-badge--recording">
-                    記録中
-                </span>
-            {% elif period.is_complete %}
-                <span class="status-badge status-badge--ready">
-                    作成可能
-                </span>
+            {% if period.existing_report %}
+                <span class="status-badge status-badge--complete">完成</span>
+            {% elif period.period_complete and period.has_records %}
+                <span class="status-badge status-badge--recording">自動作成中</span>
+            {% elif period.period_complete %}
+                <span class="status-badge status-badge--unknown">記録なし</span>
+            {% else %}
+                <span class="status-badge status-badge--recording">記録中</span>
             {% endif %}
         </div>
 
-        <p class="report-card__description">
-            {% if period.is_current %}
-                この期間はまだ記録中です。
-            {% else %}
-                この期間の診察レポートを作成できます。
-            {% endif %}
-        </p>
+        {% if period.existing_report %}
+            {% set report_text = period.existing_report.edited_content or period.existing_report.generated_content %}
 
-        {% if period.is_complete %}
-        <form
-            method="post"
-            action="{{ url_for(
-                'generate',
-                period_start=period.period_start.isoformat(),
-                period_end=period.period_end.isoformat()
-            ) }}"
-        >
+            <div
+                class="history-card__memo"
+                style="margin-top:18px; white-space:pre-wrap; line-height:1.85; color:#f2f2f2;"
+                data-report-text
+            >{{ report_text }}</div>
+
             <button
-                class="button button--primary button--full"
-                type="submit"
+                class="button button--secondary button--full"
+                type="button"
+                style="margin-top:18px;"
+                data-copy-report
             >
-                AIレポートを作成
+                レポート全文をコピー
             </button>
-        </form>
-        {% else %}
-        <button
-            class="button button--secondary button--full"
-            type="button"
-            disabled
-        >
-            記録期間終了後に作成できます
-        </button>
-        {% endif %}
 
+            {% if period.existing_report.generated_at %}
+                <p class="report-card__description">
+                    作成：{{ period.existing_report.generated_at.strftime("%Y/%m/%d %H:%M") }}
+                </p>
+            {% endif %}
+
+        {% elif period.period_complete and period.has_records %}
+            <p class="report-card__description">
+                AIレポートを自動で作成しています。少し時間をおいて、この画面を開き直してください。
+            </p>
+
+        {% elif period.period_complete %}
+            <p class="report-card__description">
+                この期間には、レポートに使用できる記録がありません。
+            </p>
+
+        {% else %}
+            <p class="report-card__description">
+                この期間は記録中です。期間最終日を迎えると自動作成されます。
+            </p>
+        {% endif %}
     </article>
     {% endfor %}
 {% else %}
-
-<article class="empty-state">
-    <h2>まだ期間がありません</h2>
-    <p>
-        心や電車の記録を始めると、
-        7日ごとのAIレポートが表示されます。
-    </p>
-</article>
-
+    <article class="empty-state">
+        <h2>まだ期間がありません</h2>
+        <p>心や電車の記録を始めると、7日ごとのAIレポートが表示されます。</p>
+    </article>
 {% endif %}
-
 </section>
 {% endblock %}
