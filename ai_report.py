@@ -11,6 +11,7 @@ from config import config
 from database import (
     build_report_source,
     get_weekly_report,
+    list_report_periods,
     save_generated_report,
 )
 
@@ -69,9 +70,7 @@ SYSTEM_INSTRUCTIONS = """
 
 
 def _json_safe(value: Any) -> Any:
-    """
-    date、datetime、DecimalなどをJSONへ変換可能な値にします。
-    """
+    """date、datetime、DecimalなどをJSONへ変換可能な値にします。"""
     if isinstance(value, datetime):
         return value.isoformat()
 
@@ -113,9 +112,8 @@ def _validate_period(
 
 def _build_user_prompt(source: dict[str, Any]) -> str:
     """記録データをAIへ渡すための依頼文を作ります。"""
-    safe_source = _json_safe(source)
     source_json = json.dumps(
-        safe_source,
+        _json_safe(source),
         ensure_ascii=False,
         indent=2,
     )
@@ -127,31 +125,22 @@ def _build_user_prompt(source: dict[str, Any]) -> str:
 空欄や記録のない日は、推測で補わないでください。
 医師が30秒以内で読めるよう、300〜500文字以内・箇条書き中心でまとめてください。
 
-心の強さと不安の強さは、それぞれ1～5の本人評価です。
-電車結果は以下の意味です。
+心の強さと不安の強さは、それぞれ1〜5の本人評価です。
 
+電車結果は以下の意味です。
 - success: ◎ 乗れた
 - partial: △ 一部乗れた
 - failed: × 乗れなかった
 - no_plan: － 乗る予定なし
 
 移動方法は以下の意味です。
-
 - alone: 一人
 - accompanied: 付き添いあり
 
 気圧状態は以下の意味です。
-
 - normal: 通常
 - caution: 注意
 - warning: 警戒
-- unknown: 不明
-
-気圧変化は以下の意味です。
-
-- rising: 上昇中
-- falling: 下降中
-- stable: 安定
 - unknown: 不明
 
 【記録データ】
@@ -160,11 +149,7 @@ def _build_user_prompt(source: dict[str, Any]) -> str:
 
 
 def _extract_output_text(response: Any) -> str:
-    """
-    Responses APIの応答から本文を取り出します。
-
-    SDKのoutput_textが利用できない場合にも対応します。
-    """
+    """Responses APIの応答から本文を取り出します。"""
     output_text = getattr(response, "output_text", None)
 
     if isinstance(output_text, str) and output_text.strip():
@@ -217,17 +202,16 @@ def generate_weekly_report(
     source = build_report_source(period_start, period_end)
     safe_source = _json_safe(source)
 
-    heart_count = (
-        safe_source.get("summary", {}).get("heart_log_count", 0)
+    heart_count = int(
+        safe_source.get("summary", {}).get("heart_log_count") or 0
     )
-    train_count = (
-        safe_source.get("summary", {}).get("train_log_count", 0)
+    train_count = int(
+        safe_source.get("summary", {}).get("train_log_count") or 0
     )
 
     if heart_count == 0 and train_count == 0:
         raise AIReportError(
             "この7日間には心ログも電車ログもありません。"
-            "記録を入力してからレポートを作成してください。"
         )
 
     client = OpenAI(
@@ -245,7 +229,7 @@ def generate_weekly_report(
     except Exception as exc:
         raise AIReportError(
             "AI診察レポートの作成に失敗しました。"
-            "しばらく時間をおいて再度お試しください。"
+            "次回アプリを開いたときに再試行します。"
         ) from exc
 
     generated_content = _extract_output_text(response)
@@ -259,14 +243,72 @@ def generate_weekly_report(
     )
 
 
+def generate_missing_completed_reports() -> dict[str, Any]:
+    """
+    終了済みで未作成の7日間レポートを自動生成します。
+
+    既に作成済みの期間、記録がない期間、まだ終了していない期間は
+    スキップします。
+    """
+    generated = 0
+    skipped = 0
+    errors: list[dict[str, str]] = []
+    today = date.today()
+
+    # 古い期間から順番に処理します。
+    periods = list(reversed(list_report_periods()))
+
+    for period in periods:
+        period_start = period["period_start"]
+        period_end = period["period_end"]
+
+        if today < period_end:
+            skipped += 1
+            continue
+
+        if get_weekly_report(period_start, period_end):
+            skipped += 1
+            continue
+
+        source = build_report_source(period_start, period_end)
+        summary = source.get("summary", {})
+
+        heart_count = int(summary.get("heart_log_count") or 0)
+        train_count = int(summary.get("train_log_count") or 0)
+
+        if heart_count == 0 and train_count == 0:
+            skipped += 1
+            continue
+
+        try:
+            generate_weekly_report(
+                period_start=period_start,
+                period_end=period_end,
+                overwrite=False,
+            )
+            generated += 1
+        except AIReportError as exc:
+            errors.append(
+                {
+                    "period_start": period_start.isoformat(),
+                    "period_end": period_end.isoformat(),
+                    "message": str(exc),
+                }
+            )
+
+    return {
+        "generated": generated,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+
 def create_report_preview(
     *,
     period_start: date,
     period_end: date,
 ) -> dict[str, Any]:
-    """
-    AIを呼び出さず、対象期間の記録件数と生成可否を確認します。
-    """
+    """AIを呼び出さず、対象期間の状態を確認します。"""
     _validate_period(period_start, period_end)
 
     source = _json_safe(
@@ -276,9 +318,9 @@ def create_report_preview(
 
     heart_count = int(summary.get("heart_log_count") or 0)
     train_count = int(summary.get("train_log_count") or 0)
+    existing_report = get_weekly_report(period_start, period_end)
 
-    today = date.today()
-    period_complete = today > period_end
+    period_complete = date.today() >= period_end
 
     return {
         "period_start": period_start,
@@ -290,9 +332,7 @@ def create_report_preview(
         "can_generate": (
             period_complete
             and (heart_count > 0 or train_count > 0)
+            and not existing_report
         ),
-        "existing_report": get_weekly_report(
-            period_start,
-            period_end,
-        ),
+        "existing_report": existing_report,
     }
